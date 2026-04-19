@@ -4,13 +4,13 @@ on:
     branches: [ main ]
 
 # This block ensures that the GitHub Action workflow has permissions to write comments and update pull requests:
-permissions: 
-  contents: read 
-  id-token: write 
-  issues: write 
+permissions:
+  contents: read
+  id-token: write
+  issues: write
   pull-requests: write
 
-jobs: 
+jobs:
     # Pre-commit hook to scan for secrets/ leaks in the codebase using TruffleHog
     secret-scanning:
         runs-on: ubuntu-latest
@@ -38,23 +38,24 @@ jobs:
 
             # Run SonarQube scan
             - name: SonarQube Scan
-              uses: SonarSource/sonarqube-scan-action@<???> # Ex: v4.1.0 or sha1, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+              uses: SonarSource/sonarqube-scan-action@v4.1.0
               env:
                 SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} # for more details on how to generate the SONAR_TOKEN, check the link provided above.
 
     #GATE#2: Dependency scanning using OWASP Dependency-Check
     dependency-scanning:
         runs-on: ubuntu-latest
-        needs: [ ??? , ??? ] # this job will run only if the "sast-scan" and "secret-scanning" jobs are successful
+        needs: [sast-scan, secret-scanning] # this job will run only if the "sast-scan" and "secret-scanning" jobs are successful
         steps:
-            
-            # ??? : Checkout code
+
+            - name: Checkout code
+              uses: actions/checkout@v3
 
             - name: build the project
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v4
 
             - name: Install dependencies
-              run: npm install 
+              run: npm install
 
             # Run OWASP Dependency-Check scan
             - name: Depcheck
@@ -79,10 +80,11 @@ jobs:
     # GATE#3: Container/Image scanning using Trivy
     image-scanning:
         runs-on: ubuntu-latest
-        needs: [ ??? ] # this job will run only if the "dependency-scanning" job is successful
+        needs: [dependency-scanning] # this job will run only if the "dependency-scanning" job is successful
         steps:
-            
-            # ??? : Checkout code
+
+            - name: Checkout code
+              uses: actions/checkout@v3
 
             # Build the Docker image (
             - name: Build Docker image
@@ -94,11 +96,9 @@ jobs:
               with:
                 image-ref: 'my-app:latest'
                 format: 'table'
-                severity-threshold: 'HIGH'
+                severity: 'HIGH,CRITICAL'
 
     # GATE#4: Infrastructure as Code (IaC) scanning using Checkov. Sine this is too much for you (and me), let's skip this part as well haha
     # but you can check out the Checkov GitHub Action here: https://github.com/marketplace/actions/checkov-github-action
 
     # GATE#5: DAST scan using OWASP ZAP (well, there is a workshop for this, so let's skip this part)
-    
-    
