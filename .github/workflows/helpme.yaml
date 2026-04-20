@@ -14,6 +14,11 @@ permissions:
   # TODO#0a: add permission required for SARIF upload (github/codeql-action/upload-sarif)
   # TODO#0b: add permission so Gitleaks/Sonar can comment on PRs + issues
   # TODO#0c: add permission for OIDC token (id-token)
+  id-token: ???
+  issues: ???
+  pull-requests: ???
+  security-events: ???  # required to upload SARIF to GitHub Security tab
+  actions: ???
 
 jobs:
     # GATE#0: Secret scanning (TruffleHog + Gitleaks)
@@ -25,7 +30,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                 # TODO#1: why do secret scanners need git history?
-                # Set fetch-depth to 1 so TruffleHog can diff base..HEAD across all commits.
+                # Set fetch-depth to 0 so TruffleHog can diff base..HEAD across all commits.
                 fetch-depth: ???
 
               # TruffleHog scans code + commit history for verified secrets (live creds). It can be noisy, but is a great first line of defense.
@@ -34,11 +39,14 @@ jobs:
               continue-on-error: true # NOTE THAT THIS IS NOT A BEST PRACTICE — ideally we would fail here and fix secrets before moving on to later gates, but for demo purposes we want to see results from all scanners.
               with:
                 path: ./
-                # TODO#2: set base + head refs so TruffleHog scans the commit diff
+                # TODO#2: set base + HEAD refs so TruffleHog scans the commit diff
                 # base: ???
                 # head: ???
                 # TODO#3: add extra_args flag to report ONLY VERIFIED secrets (reduce noise)
                 # extra_args: ???
+                base: ${{ github.event.repository.default_branch }}
+                head: ???
+                extra_args: ???
 
             # Gitleaks scans code + history for regex patterns that look like secrets. It can be more accurate than TruffleHog, but may miss live creds that don't match known patterns.
             # TODO#4: add Gitleaks step below.
@@ -48,6 +56,13 @@ jobs:
             #   - env GITHUB_TOKEN from secrets.GITHUB_TOKEN
             #   - enable SARIF artifact upload + job summary via env vars
             # Q: difference between TruffleHog (verified live creds) vs Gitleaks (regex patterns)?
+            - name: Run Gitleaks
+              uses: ???
+              continue-on-error: true
+              env:
+                GITHUB_TOKEN: ???
+                GITLEAKS_ENABLE_UPLOAD_ARTIFACT: ???
+                GITLEAKS_ENABLE_SUMMARY: ???
 
     # GATE#1a: SAST via SonarQube 
     sast-scan:
@@ -67,6 +82,11 @@ jobs:
             # env: SONAR_TOKEN from secrets
             # continue-on-error: true (so pipeline keeps running BUT IT IS NOT A BEST PRACTICE — ideally we would fail here and fix SAST issues before moving on to later gates)
             # Q: where do findings show up? (NOT GitHub Security tab — why?)
+            - name: SonarQube Scan
+              uses: ???
+              continue-on-error: true
+              env:
+                  SONAR_TOKEN: ???
 
     # GATE#1b: SAST via CodeQL (results in GitHub Security tab)
     codeql-scan:
@@ -89,7 +109,7 @@ jobs:
                 languages: ${{ matrix.language }}
                 # TODO#8: enable extended security + quality query suites
                 # queries: ???
-                #
+                queries: ???,???
                 # RESOURCE — CodeQL query suites:
                 # https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages#codeql-query-suites
                 #
@@ -103,6 +123,10 @@ jobs:
             # TODO#9: add analyze step
             # Action: github/codeql-action/analyze@v3
             # Set category so matrix runs don't collide in Security tab.
+            - name: Perform CodeQL Analysis
+              uses: ???
+              with:
+                category: "/language:${{ matrix.language }}"
 
     # GATE#2: Dependency scanning via OWASP Dependency-Check (SARIF + HTML)
     dependency-scanning:
@@ -122,10 +146,10 @@ jobs:
             - name: Depcheck
               uses: dependency-check/Dependency-Check_Action@main
               continue-on-error: true # NOTE THAT THIS IS NOT A BEST PRACTICE — ideally we would fail here and fix secrets before moving on to later gates, but for demo purposes we want to see results from all scanners.
-              id: Depcheck
+              id: Depcheck # give this step an ID so we can reference its outputs in later steps (e.g. for SARIF upload)
               with:
                 project: 'DontEverPushThisCodeV2'
-                path: '.'
+                path: '.' # scan current directory (which should be the repo root after checkout)
                 # TODO#12: which format integrates with GitHub Security tab?
                 format: '???'
                 out: 'reports'
@@ -139,10 +163,24 @@ jobs:
             # Action: github/codeql-action/upload-sarif@v3
             # sarif_file: reports/dependency-check-report.sarif
             # category: dependency-check
+            - name: Upload Depcheck SARIF to Security tab
+              if: always() 
+              #the above line meant to upload SARIF even if the Depcheck step fails (e.g. due to high CVSS findings), so that we can see results in Security tab and fix issues.
+              uses: ???
+              continue-on-error: true
+              with:
+                  sarif_file: ???
+                  category: ???
 
             # TODO#15: upload raw Depcheck report folder as artifact
             # Action: actions/upload-artifact@v4
             # name: depcheck-report, path: reports/
+            - name: Upload Depcheck HTML report as artifact
+              if: always() 
+              uses: ???
+              with:
+                name: ???
+                ???: ???
 
     # GATE#3: Container/Image scanning via Trivy (SARIF + artifact)
     image-scanning:
