@@ -149,7 +149,7 @@ jobs:
                 node-version: '20'
 
             - name: Install dep
-              uses: npm ci
+              run: npm ci
             
             - name: Depcheck
               uses: dependency-check/Dependency-Check_Action@main
@@ -203,7 +203,7 @@ jobs:
             #          Hint: `docker build -t ...`
 
             - name: Build Docker image
-              uses: docker build -t my-app:latest
+              run: docker build -t my-app:latest
 
             - name: Trivy Scan
               uses: aquasecurity/trivy-action@master
