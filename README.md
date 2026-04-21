@@ -148,7 +148,7 @@ Add in repo → Settings → Secrets and variables → Actions:
 
 ---
 
-## Security Notice 
+## Security Notice  
 
 Intentionally vulnerable. Contains XSS, SQL injection, hardcoded secrets, and outdated dependencies.  
 This is not a real website. One must not (ever) deploy this in the production server
