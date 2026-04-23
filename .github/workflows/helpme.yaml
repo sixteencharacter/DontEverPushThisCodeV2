@@ -157,4 +157,4 @@ jobs:
               uses: actions/upload-artifact@v4 # TODO#21
               with:
                 name: trivy-results
-                path: trivy-results.sarif
+                path: trivy-results.sarif 
